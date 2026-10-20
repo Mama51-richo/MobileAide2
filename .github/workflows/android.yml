@@ -1,39 +1,42 @@
 name: Build MobileAide APK
 
 on:
-  workflow_dispatch:
-  push:
-    paths:
-      - 'MobileAide-Android-Source.zip'
-      - '.github/workflows/android.yml'
+workflow_dispatch:
+
+permissions:
+contents: read
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+build:
+runs-on: ubuntu-latest
 
-    steps:
-      - name: Download project files
-        uses: actions/checkout@v4
+steps:
+  - name: Checkout source
+    uses: actions/checkout@v4
 
-      - name: Extract Android project
-        run: unzip -o MobileAide-Android-Source.zip -d .
+  - name: Set up Java
+    uses: actions/setup-java@v4
+    with:
+      distribution: temurin
+      java-version: '17'
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
+  - name: Set up Android SDK
+    uses: android-actions/setup-android@v3
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+  - name: Install Android SDK packages
+    run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Build debug APK
-        uses: gradle/actions/setup-gradle@v4
-      - run: gradle -p MobileAide assembleDebug
+  - name: Find Gradle project
+    run: |
+      find . -name gradlew -type f
 
-      - name: Save APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: MobileAide-APK
-          path: MobileAide/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+  - name: Build APK
+    run: |
+      chmod +x ./gradlew
+      ./gradlew assembleDebug
+
+  - name: Upload APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: MobileAide-debug-apk
+      path: '**/build/outputs/apk/debug/*.apk'
